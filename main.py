@@ -3,6 +3,9 @@ import sys
 import random
 from pygame.locals import QUIT, K_UP, K_DOWN, K_LEFT, K_RIGHT, K_w, K_a, K_s, K_d
 from tilemap import tile_map_1, tile_types
+from player import Player
+from enemy import Enemy
+from coin import Coin
 
 # Initialize Pygame
 pygame.init()
@@ -33,7 +36,6 @@ except pygame.error as e:
 current_tile_map = tile_map_1
 allowed_tile_ids = {5}
 
-# Find valid starting positions for player and enemies
 def find_valid_positions(tile_id):
     valid_positions = []
     for y, row in enumerate(current_tile_map):
@@ -41,36 +43,6 @@ def find_valid_positions(tile_id):
             if tile_id_ == tile_id:
                 valid_positions.append((x * TILE_SIZE, y * TILE_SIZE))
     return valid_positions
-
-class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.image.load("playerright.gif").convert_alpha()
-        self.image = pygame.transform.scale(self.image, (1.5 * TILE_SIZE, 1.5 * TILE_SIZE))
-        self.rect = self.image.get_rect(topleft=(x, y))
-        self.health = 100  # Player's health
-
-    def move(self, dx, dy):
-        self.rect.x += dx
-        self.rect.y += dy
-
-class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.image.load("enemy.png").convert_alpha()
-        self.image = pygame.transform.scale(self.image, (1.5 * TILE_SIZE, 1.5 * TILE_SIZE))
-        self.rect = self.image.get_rect(topleft=(x, y))
-
-    def move(self, dx, dy):
-        self.rect.x += dx
-        self.rect.y += dy
-
-class Coin(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.image.load("coin.png").convert_alpha()
-        self.image = pygame.transform.scale(self.image, (TILE_SIZE, TILE_SIZE))
-        self.rect = self.image.get_rect(topleft=(x, y))
 
 # Create player instance
 player_start_position = random.choice(find_valid_positions(5))
@@ -117,7 +89,6 @@ while running:
     elif keys[K_RIGHT]:
         player_dx += move_speed
 
-    # Check if the next tile in the direction of movement is valid
     next_tile_x = (player.rect.x + player_dx) // TILE_SIZE
     next_tile_y = (player.rect.y + player_dy) // TILE_SIZE
     if current_tile_map[next_tile_y][next_tile_x] in allowed_tile_ids:
@@ -139,16 +110,11 @@ while running:
         next_tile_y = (enemy.rect.y + enemy_dy) // TILE_SIZE
         if current_tile_map[next_tile_y][next_tile_x] in allowed_tile_ids:
             enemy.move(enemy_dx, enemy_dy)
-            
-        # if enemy.rect.colliderect(larger_rect):
-        #     player.health -= 1 # Decrease health when an enemy collides with the castle
 
-        # Check for player and enemy collisions
     collided_enemies = pygame.sprite.spritecollide(player, enemies, False)
     if collided_enemies:
         player.health -= 1  # Decrease health when the player collides with an enemy
 
-        # Check for coin collisions
     collided_coins = pygame.sprite.spritecollide(player, coins_group, True)
     if collided_coins:
         player.health = min(player.health + 10, 190)
@@ -162,21 +128,18 @@ while running:
                 tile_rect.topleft = (x * TILE_SIZE, y * TILE_SIZE)
                 screen.blit(tile_image, tile_rect)
 
-    # Draw the larger image at the bottom right
     larger_rect = larger_image.get_rect()
     larger_rect.bottomright = (WIDTH, HEIGHT)
     screen.blit(larger_image, (565, 275))
 
-    # Draw the health bar below the castle
     draw_health_bar(screen, 565, 455, player.health)
-
-    # Draw all sprites
     all_sprites.draw(screen)
 
     pygame.display.flip()
     clock.tick(60)  # Cap the frame rate to 60 FPS
 
-if BAR <= 0:
+if player.health <= 0:
     print("Game Over! You were defeated.")
     pygame.quit()
     sys.exit()
+
